@@ -1,6 +1,7 @@
 (ns athens.router
   (:require
     [athens.db :as db]
+    [athens.util :as util]
     #_[athens.views :as views]
     [day8.re-frame.tracing :refer-macros [fn-traced]]
     [posh.reagent :refer [pull]]
@@ -44,8 +45,15 @@
           controllers (rfc/apply-controllers (:controllers old-match) new-match)
           node (pull db/dsdb '[*] [:block/uid (-> new-match :path-params :id)]) ;; TODO make the page title query work when zoomed in on a block
           node-title (:node/title @node)
-          page-title (str (or node-title "untitled") " – Athens")]
-      (set! (.-title js/document) page-title) ;; TODO make this side effect explicit
+          route-name (-> new-match :data :name)
+          html-title-prefix (cond
+                              node-title node-title
+                              (= route-name :pages) "All Pages"
+                              (= route-name :home) "Daily Notes")
+          html-title (if html-title-prefix
+                       (str html-title-prefix " | Athens")
+                       "Athens")]
+      (set! (.-title js/document) html-title)
       {:db (-> db
                (assoc :current-route (assoc new-match :controllers controllers))
                (dissoc :merge-prompt))
@@ -94,6 +102,16 @@
 (defn navigate
   [page]
   (dispatch [:navigate page]))
+
+
+(defn nav-daily-notes
+  "When user is already on a date node-page, clicking on daily notes goes to that date and allows scrolling."
+  []
+  (let [route-uid @(subscribe [:current-route/uid])]
+    (if (util/is-timeline-page route-uid)
+      (dispatch [:daily-notes/add route-uid])
+      (dispatch [:daily-notes/reset]))
+    (navigate :home)))
 
 
 (defn navigate-uid

@@ -23,6 +23,7 @@
                :db/mtime            nil
                :current-route       nil
                :loading?            true
+               :modal               false
                :alert               nil
                :athena/open         false
                :athena/recent-items '()
@@ -30,6 +31,7 @@
                :left-sidebar/open   false
                :right-sidebar/open  false
                :right-sidebar/items {}
+               :right-sidebar/width 32
                :mouse-down          false
                :daily-notes/items   []
                :selected/items      []
@@ -372,17 +374,19 @@
   ([query] (search-in-node-title query 20 false))
   ([query n] (search-in-node-title query n false))
   ([query n ignore-dup]
-   (let [results (->> (d/q '[:find [(pull ?node [:db/id :node/title :block/uid]) ...]
-                             :in $ ?query-pattern ?query
-                             :where
-                             [?node :node/title ?title]
-                             [(re-find ?query-pattern ?title)]
-                             [(not= ?title ?query)]]                ;; ignore exact match to avoid duplicate
-                           @dsdb
-                           (re-case-insensitive query)
-                           (when ignore-dup query))
-                      (take n))]
-     results)))
+   (if (string/blank? query)
+     (vector)
+     (let [results (->> (d/q '[:find [(pull ?node [:db/id :node/title :block/uid]) ...]
+                               :in $ ?query-pattern ?query
+                               :where
+                               [?node :node/title ?title]
+                               [(re-find ?query-pattern ?title)]
+                               [(not= ?title ?query)]]                ;; ignore exact match to avoid duplicate
+                             @dsdb
+                             (re-case-insensitive query)
+                             (when ignore-dup query))
+                        (take n))]
+       results))))
 
 
 (defn get-root-parent-node
@@ -396,17 +400,19 @@
 (defn search-in-block-content
   ([query] (search-in-block-content query 20))
   ([query n]
-   (->>
-     (d/q '[:find [(pull ?block [:db/id :block/uid :block/string :node/title {:block/_children ...}]) ...]
-            :in $ ?query-pattern
-            :where
-            [?block :block/string ?txt]
-            [(re-find ?query-pattern ?txt)]]
-          @dsdb
-          (re-case-insensitive query))
-     (take n)
-     (map get-root-parent-node)
-     (mapv #(dissoc % :block/_children)))))
+   (if (string/blank? query)
+     (vector)
+     (->>
+       (d/q '[:find [(pull ?block [:db/id :block/uid :block/string :node/title {:block/_children ...}]) ...]
+              :in $ ?query-pattern
+              :where
+              [?block :block/string ?txt]
+              [(re-find ?query-pattern ?txt)]]
+            @dsdb
+            (re-case-insensitive query))
+       (take n)
+       (map get-root-parent-node)
+       (mapv #(dissoc % :block/_children))))))
 
 
 (defn get-block-refs

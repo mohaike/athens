@@ -300,7 +300,8 @@
        :component-will-unmount (fn [_this] (unlisten js/document "mousedown" handle-click-outside))
        :reagent-render   (fn [node state]
                            (let [{:block/keys [uid] sidebar :page/sidebar title :node/title} node
-                                 {:menu/keys [show x y]} @state]
+                                 {:menu/keys [show x y]} @state
+                                 timeline-page? (is-timeline-page uid)]
                              (when show
                                [:div (merge (use-style dropdown-style
                                                        {:ref #(reset! ref %)})
@@ -318,11 +319,13 @@
                                     [:<>
                                      [:> mui-icons/Bookmark]
                                      [:span "Add Shortcut"]]])
-                                 [:hr (use-style menu-separator-style)]
-                                 [button {:on-click #(do
-                                                       (navigate :pages)
-                                                       (dispatch [:page/delete uid title]))}
-                                  [:<> [:> mui-icons/Delete] [:span "Delete Page"]]]]])))})))
+                                 (when-not timeline-page?
+                                   [:hr (use-style menu-separator-style)])
+                                 (when-not timeline-page?
+                                   [button {:on-click #(do
+                                                         (navigate :pages)
+                                                         (dispatch [:page/delete uid title]))}
+                                    [:<> [:> mui-icons/Delete] [:span "Delete Page"]]])]])))})))
 
 
 (defn ref-comp
@@ -382,6 +385,7 @@
           (when-not timeline-page?
             [autosize/textarea
              {:value         (:title/local @state)
+              :id            (str "editable-uid-" uid)
               :class         (when (= editing-uid uid) "is-editing")
               :on-blur       (fn [_] (handle-blur node state ref-groups))
               :on-key-down   (fn [e] (handle-key-down e state))

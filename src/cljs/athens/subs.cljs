@@ -11,12 +11,6 @@
 
 
 (re-frame/reg-sub
-  :db/filepath
-  (fn [db _]
-    (:db/filepath db)))
-
-
-(re-frame/reg-sub
   :db/synced
   (fn [db _]
     (:db/synced db)))
@@ -77,6 +71,12 @@
 
 
 (re-frame/reg-sub
+  :right-sidebar/width
+  (fn [db _]
+    (:right-sidebar/width db)))
+
+
+(re-frame/reg-sub
   :mouse-down
   (fn [db _]
     (:mouse-down db)))
@@ -126,3 +126,9 @@
   :athena/get-recent
   (fn-traced [db _]
              (:athena/recent-items db)))
+
+
+(re-frame/reg-sub
+  :modal
+  (fn [db _]
+    (:modal db)))
